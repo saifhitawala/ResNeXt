@@ -1,6 +1,9 @@
 import argparse
 import os
 import json
+import torch
+import torchvision.datasets as dset
+import torchvision.transforms as transforms
 from time import time, gmtime, strftime
 
 if __name__ == '__main__':
@@ -51,3 +54,17 @@ if __name__ == '__main__':
 
 	if not os.path.isdir(args.data_path):
 		os.makedirs(args.data_path)
+
+	train_data = dset.ImageFolder(train_data_dir, transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, padding=4), transforms.ToTensor()]))
+	test_data = dset.ImageFolder(validation_data_dir, transforms.Compose([transforms.RandomCrop(32, padding=4), transforms.ToTensor()]))
+	print(train_data.__getitem__(0))
+	print(test_data.__getitem__(0))
+	nlabels = 10
+
+	train_loader = torch.utils.data.DataLoader(train_data, shuffle=True, batch_size=args.batch_size)
+	test_loader = torch.utils.data.DataLoader(test_data, shuffle=False, batch_size=args.test_bs)
+
+	if not os.path.isdir(args.save):
+		os.makedirs(args.save)
+
+	
