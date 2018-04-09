@@ -40,7 +40,7 @@ class ResNeXtBottleneck(nn.Module):
 		bottleneck = F.relu(self.bn.forward(bottleneck), inplace=True)
 		bottleneck = self.conv_expand.forward(bottleneck)
 		bottleneck = self.bn_expand.forward(bottleneck)
-		residual = self.shortcut.forward(bottleneck)
+		residual = self.shortcut.forward(x)
 		return F.relu(residual + bottleneck, inplace=True)
 
 class ResNeXt(nn.Module):
