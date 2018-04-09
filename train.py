@@ -5,6 +5,7 @@ import torch
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from time import time, gmtime, strftime
+from model import ResNeXt
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Trains ResNeXt on CIFAR dataset')
@@ -67,4 +68,5 @@ if __name__ == '__main__':
 	if not os.path.isdir(args.save):
 		os.makedirs(args.save)
 
-	
+	net = ResNeXt(args.cardinality, args.depth, args.base_width, nlabels, args.widen_factor)
+	print(net)
