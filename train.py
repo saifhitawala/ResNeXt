@@ -31,6 +31,10 @@ if __name__ == '__main__':
 	parser.add_argument('--save', '-s', type=str, default='./snapshot', help='Folder to save model checkpoints')
 	parser.add_argument('--load', '-l', type=str, help='Checkpoint path to resume model training')
 	parser.add_argument('--log', type=str, default='./log', help='Log folder')
+	# GPU
+    parser.add_argument('--gpus', type=int, default=1, help='0 = CPU')
+    parser.add_argument('--prefetch', type=int, default=2, help='Pre-fetching threads')
+    
 
 	args = parser.parse_args()
 
@@ -72,6 +76,12 @@ if __name__ == '__main__':
 	net = ResNeXt(args.cardinality, args.depth, args.base_width, nlabels, args.widen_factor)
 	print(net)
 
+	if args.ngpu > 1:
+        net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
+
+    if args.ngpu > 0:
+        net.cuda()
+
 	optimizer = torch.optim.SGD(net.parameters(), state['learning_rate'], momentum=state['momentum'], weight_decay=state['decay'], nesterov=True)
 
 	# Training
@@ -97,7 +107,7 @@ if __name__ == '__main__':
 		loss_avg = 0.0
 		correct = 0
 		for batch_idx, (data, target) in enumerate(test_loader):
-			data, target = torch.autograd.Variable(data), torch.autograd.Variable(target)
+			data, target = torch.autograd.Variable(data.cuda()), torch.autograd.Variable(target.cuda())
 
 			output = net(data)
 			loss = F.cross_entropy(output, target)
