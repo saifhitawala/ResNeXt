@@ -11,8 +11,8 @@ from model import ResNeXt
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Trains ResNeXt on CIFAR dataset')
 	# Dataset arguments
-	parser.add_argument('--data_path', '-dp', type=str, default='cifar10', help='Root for the dataset')
-	parser.add_argument('--dataset', '-ds', type=str, default='cifar10', help='Dataset type')
+	parser.add_argument('--data_path', '-dp', type=str, default='cifar10', help='Root for the CIFAR dataset')
+	parser.add_argument('--dataset', '-ds', type=str, default='cifar10', choices=['cifar2', 'cifar5', 'cifar10', 'cifar100'], help='Choose between Cifar2/5/10/100')
 	# Optimization options
 	parser.add_argument('--epochs', '-e', type=int, default=300, help='Number of epochs to train')
 	parser.add_argument('--learning_rate', '-lr', type=float, default=0.1, help='Learning rate')
@@ -32,9 +32,9 @@ if __name__ == '__main__':
 	parser.add_argument('--load', '-l', type=str, help='Checkpoint path to resume model training')
 	parser.add_argument('--log', type=str, default='./log', help='Log folder')
 	# GPU
-    parser.add_argument('--gpus', type=int, default=1, help='0 = CPU')
-    parser.add_argument('--prefetch', type=int, default=2, help='Pre-fetching threads')
-    
+	parser.add_argument('--gpus', type=int, default=1, help='0 = CPU')
+	parser.add_argument('--prefetch', type=int, default=2, help='Pre-fetching threads')
+	
 
 	args = parser.parse_args()
 
@@ -63,10 +63,25 @@ if __name__ == '__main__':
 	mean = [x / 255 for x in [125.3, 123.0, 113.9]]
 	std = [x / 255 for x in [63.0, 62.1, 66.7]]
 
-	train_data = dset.ImageFolder(train_data_dir, transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, padding=4), transforms.ToTensor(), transforms.Normalize(mean, std)]))
-	test_data = dset.ImageFolder(validation_data_dir, transforms.Compose([transforms.RandomCrop(32, padding=4), transforms.ToTensor(), transforms.Normalize(mean, std)]))
-	nlabels = 10
-
+	train_transforms = transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, padding=4), transforms.ToTensor(), transforms.Normalize(mean, std)])
+	test_transform = transforms.Compose([transforms.RandomCrop(32, padding=4), transforms.ToTensor(), transforms.Normalize(mean, std)])
+	if args.dataset == 'cifar2':
+		train_data = dset.ImageFolder(train_data_dir, transform=train_transform)
+		test_data = dset.ImageFolder(validation_data_dir, transform=test_transform)
+		nlabels = 2
+	elif args.dataset == 'cifar5':
+		train_data = dset.ImageFolder(train_data_dir, transform=train_transform)
+		test_data = dset.ImageFolder(validation_data_dir, transform=test_transform)
+		nlabels = 5
+	elif args.dataset == 'cifar10':
+		train_data = dset.ImageFolder(train_data_dir, transform=train_transform)
+		test_data = dset.ImageFolder(validation_data_dir, transform=test_transform)
+		nlabels = 10
+	else:
+		train_data = dset.CIFAR100(args.data_path, train=True, transform=train_transform, download=True)
+		test_data = dset.CIFAR100(args.data_path, train=False, transform=test_transform, download=True)
+		nlabels = 100
+	
 	train_loader = torch.utils.data.DataLoader(train_data, shuffle=True, batch_size=args.batch_size)
 	test_loader = torch.utils.data.DataLoader(test_data, shuffle=False, batch_size=args.test_bs)
 
@@ -77,10 +92,10 @@ if __name__ == '__main__':
 	print(net)
 
 	if args.ngpu > 1:
-        net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
+		net = torch.nn.DataParallel(net, device_ids=list(range(args.ngpu)))
 
-    if args.ngpu > 0:
-        net.cuda()
+	if args.ngpu > 0:
+		net.cuda()
 
 	optimizer = torch.optim.SGD(net.parameters(), state['learning_rate'], momentum=state['momentum'], weight_decay=state['decay'], nesterov=True)
 
